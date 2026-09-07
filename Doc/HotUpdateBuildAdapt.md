@@ -69,7 +69,7 @@ Assets/Scripts/Invariable/Manager/SdkManager.cs
 | 侧边栏复访 | `GameLog.Info` | `GameLog.Info` | 有（跳转成功写入本地 IsGetReward=1） |
 | 游戏圈按钮 | `GameLog.Info` | 有 | `GameLog.Info` |
 | 分享 | `GameLog.Info` | WX.ShareAppMessage | TT.ShareAppMessage（成功/失败/取消回调） |
-| 用户信息授权/获取 | `SyncPlatformUserInfo` 直接 `userInfoCallBack` 回 false | 已授权 `WX.GetUserInfo`；未授权 `WX.CreateUserInfoButton` | 同步时 `GetUserInfoAuth` 检查，已授权 `TT.GetUserInfo`；未授权锚点按钮触发 `RequestPlatformUserInfoAuth`（`TT.Authorize`） |
+| 用户信息授权/获取 | `SyncPlatformUserInfo` 上报 `Unsupported`，`userInfoCallBack` 回 false | 已授权 `WX.GetUserInfo` 并上报 `Authorized`；未授权先上报 `NotAuthorized` 再 `WX.CreateUserInfoButton`，拒绝上报 `Denied` | 同步时 `GetSetting` 检查，已授权 `TT.GetUserInfo` 成功上报 `Authorized`、失败上报 `NotAuthorized`；未授权上报 `NotAuthorized`，锚点按钮触发 `RequestPlatformUserInfoAuth`（`TT.Authorize`），同意上报 `Authorized`、拒绝上报 `Denied`；授权按钮显隐由业务层负责（`MainPanel` 仅 `NotAuthorized` 显示） |
 | 环境判断 | IsWeChat/IsDouYin 均返回 false | IsWeChat 返回 true | IsDouYin 返回 true |
 | YooAsset 文件系统 | 不走此接口 | 微信 FS | 抖音 FS |
 

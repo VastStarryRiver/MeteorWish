@@ -996,7 +996,7 @@ string score = SdkManager.Instance.GetCloudData("Score", "0");
 
 推荐做法：
 
-1. 先确认 `SdkManager` 是否已有现成能力（如分享 `Share(string desc)`、环境判断 `IsWeChat()/IsDouYin()`、云读写 `SetCloudData/GetCloudData`、用户信息 `SyncPlatformUserInfo(authAnchor, authCallBack, userInfoCallBack)` / `TryGetPlatformUserInfo` / `RequestPlatformUserInfoAuth(authAnchor, authCallBack, userInfoCallBack)` / `DestroyPlatformUserInfoButton`，`authCallBack` 仅授权动作、`userInfoCallBack` 仅资料结果），避免重复实现；云存档/云函数与世界榜/日榜见 `CloudManager`、FrameworkAndProcess §16 与 NewProjectSetup §7；
+1. 先确认 `SdkManager` 是否已有现成能力（如分享 `Share(string desc)`、环境判断 `IsWeChat()/IsDouYin()`、云读写 `SetCloudData/GetCloudData`、用户信息 `SyncPlatformUserInfo(authAnchor, authStateCallBack, userInfoCallBack)` / `TryGetPlatformUserInfo` / `RequestPlatformUserInfoAuth(authAnchor, authStateCallBack, userInfoCallBack)` / `DestroyPlatformUserInfoButton`，`authStateCallBack` 上报 `PlatformAuthStates`（`Invariable` 顶层枚举）、`userInfoCallBack` 仅资料结果，授权按钮显隐由业务层负责，`MainPanel` 仅 `NotAuthorized` 显示），避免重复实现；云存档/云函数与世界榜/日榜见 `CloudManager`、FrameworkAndProcess §16 与 NewProjectSetup §7；
 2. 在 `SdkManager` 添加平台无关的公共方法；
 3. 方法内部使用平台宏分支；
 4. Editor 分支提供可预测的模拟结果；

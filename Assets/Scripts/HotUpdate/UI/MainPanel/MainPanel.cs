@@ -18,18 +18,18 @@ namespace HotUpdate
         public UIButton m_btnAuth;
         public AudioClip m_audioBGM;
 
-        private bool m_hasReportedRank;
+        private static bool m_hasReportedRank;
 
 
 
         private void Awake()
         {
             GameManager.Instance.InvokeEventCallBack<object>(InvariableConst.Event_Launcher_StartGame, null); // 销毁热更新面板
-            m_hasReportedRank = false;
         }
 
         private void OnEnable()
         {
+            m_btnAuth.gameObject.SetActive(false);
             ShowAuthButton();
         }
 
@@ -66,12 +66,11 @@ namespace HotUpdate
         }
 
         /// <summary>
-        /// 同步平台资料并显示未授权时的锚点按钮
+        /// 同步平台资料，由状态回调控制授权按钮显隐
         /// </summary>
         private void ShowAuthButton()
         {
-            RectTransform authAnchor = (RectTransform)m_btnAuth.transform;
-            SdkManager.Instance.SyncPlatformUserInfo(authAnchor, OnAuthResult);
+            SdkManager.Instance.SyncPlatformUserInfo((RectTransform)m_btnAuth.transform, OnAuthState);
         }
 
         /// <summary>
@@ -82,6 +81,30 @@ namespace HotUpdate
             m_btnAuth.gameObject.SetActive(false);
             SdkManager.Instance.DestroyPlatformUserInfoButton();
         }
+
+        /// <summary>
+        /// 本局仅上报一次排行榜数据，之后不再上报
+        /// </summary>
+        private void ReportRankScore()
+        {
+            if (m_hasReportedRank)
+            {
+                return;
+            }
+
+            m_hasReportedRank = true;
+
+            string scoreText = SdkManager.Instance.GetCloudData("Score", "0");
+
+            if (!double.TryParse(scoreText, out double score))
+            {
+                return;
+            }
+
+            CloudManager.Instance.ReportRankScore("Score", score);
+        }
+
+
 
         /// <summary>
         /// 测试功能1
@@ -107,7 +130,7 @@ namespace HotUpdate
         public void OnTestClick2()
         {
             SdkManager.Instance.SetCloudData("Score", "100");
-            CloudManager.Instance.ReportRankScore("Score", 100);
+            ReportRankScore();
             m_textTest.text = "上传排行榜积分";
         }
 
@@ -177,29 +200,25 @@ namespace HotUpdate
         /// </summary>
         public void OnAuthClick()
         {
-            SdkManager.Instance.RequestPlatformUserInfoAuth((RectTransform)m_btnAuth.transform, OnAuthResult);
+            SdkManager.Instance.RequestPlatformUserInfoAuth((RectTransform)m_btnAuth.transform, OnAuthState);
         }
 
         /// <summary>
-        /// 平台授权结果回调，成功后上报一次排行榜数据
+        /// 平台授权状态回调，仅未授权时显示按钮，已授权时上报一次排行榜，拒绝时销毁原生按钮
         /// </summary>
-        private void OnAuthResult(bool success)
+        private void OnAuthState(PlatformAuthStates state)
         {
-            if (!success || m_hasReportedRank)
+            m_btnAuth.gameObject.SetActive(state == PlatformAuthStates.NotAuthorized);
+
+            if (state == PlatformAuthStates.Authorized)
             {
-                return;
+                ReportRankScore();
             }
-
-            m_hasReportedRank = true;
-
-            string scoreText = SdkManager.Instance.GetCloudData("Score", "0");
-
-            if (!double.TryParse(scoreText, out double score))
+            else if (state == PlatformAuthStates.Denied)
             {
-                return;
+                SdkManager.Instance.DestroyPlatformUserInfoButton();
+                // TODO 拒绝后的其它业务逻辑
             }
-
-            CloudManager.Instance.ReportRankScore("Score", score);
         }
     }
 }

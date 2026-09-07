@@ -19,6 +19,14 @@ using TTSDK.UNBridgeLib.LitJson;
 
 namespace Invariable
 {
+    public enum PlatformAuthStates
+    {
+        Unsupported, // 编辑器等非小游戏运行时
+        NotAuthorized, // 平台侧未授权
+        Denied, // 本次玩家点了拒绝
+        Authorized, // 平台侧已授权或本次同意
+    }
+
     public class SdkManager : Singleton<SdkManager>
     {
 #if !UNITY_EDITOR && MINIGAME_SUBPLATFORM_WEIXIN
@@ -258,9 +266,9 @@ namespace Invariable
 
         #region 平台用户信息
         /// <summary>
-        /// 同步平台昵称与头像，已授权则刷新，未授权则走首次授权入口，authCallBack 仅在本次发生授权动作时触发
+        /// 同步平台昵称与头像，已授权则刷新，未授权则走首次授权入口，authStateCallBack 上报授权状态，显隐由业务层负责
         /// </summary>
-        public void SyncPlatformUserInfo(RectTransform authAnchor, Action<bool> authCallBack = null, Action<bool> userInfoCallBack = null)
+        public void SyncPlatformUserInfo(RectTransform authAnchor, Action<PlatformAuthStates> authStateCallBack = null, Action<bool> userInfoCallBack = null)
         {
             if (m_platformUserInfoLoading)
             {
@@ -270,15 +278,16 @@ namespace Invariable
             }
 
 #if UNITY_EDITOR
+            authStateCallBack?.Invoke(PlatformAuthStates.Unsupported);
             userInfoCallBack?.Invoke(false);
 
 #elif MINIGAME_SUBPLATFORM_WEIXIN
             m_platformUserInfoLoading = true;
-            RequestWeChatUserInfo(authCallBack, userInfoCallBack, authAnchor);
+            RequestWeChatUserInfo(authStateCallBack, userInfoCallBack, authAnchor);
 
 #elif MINIGAME_SUBPLATFORM_DOUYIN
             m_platformUserInfoLoading = true;
-            RequestDouYinUserInfo(userInfoCallBack, authAnchor);
+            RequestDouYinUserInfo(authStateCallBack, userInfoCallBack);
 #endif
         }
 
@@ -294,9 +303,9 @@ namespace Invariable
         }
 
         /// <summary>
-        /// 发起平台授权，authCallBack 返回授权结果，userInfoCallBack 返回资料获取结果
+        /// 发起平台授权，authStateCallBack 上报授权状态，userInfoCallBack 返回资料获取结果，显隐由业务层负责
         /// </summary>
-        public void RequestPlatformUserInfoAuth(RectTransform authAnchor, Action<bool> authCallBack = null, Action<bool> userInfoCallBack = null)
+        public void RequestPlatformUserInfoAuth(RectTransform authAnchor, Action<PlatformAuthStates> authStateCallBack = null, Action<bool> userInfoCallBack = null)
         {
 #if !UNITY_EDITOR && MINIGAME_SUBPLATFORM_DOUYIN
             if (m_platformUserInfoLoading)
@@ -313,9 +322,8 @@ namespace Invariable
                     return;
                 }
 
-                authAnchor.gameObject.SetActive(false);
-                authCallBack?.Invoke(true);
-                RequestDouYinUserInfoDirect(userInfoCallBack, authAnchor, false);
+                authStateCallBack?.Invoke(PlatformAuthStates.Authorized);
+                RequestDouYinUserInfoDirect(authStateCallBack, userInfoCallBack, PlatformAuthStates.Authorized);
             }, (msg, err) =>
             {
                 if (requestId != m_douYinUserInfoRequestId)
@@ -324,9 +332,8 @@ namespace Invariable
                 }
 
                 m_platformUserInfoLoading = false;
-                authAnchor.gameObject.SetActive(false);
                 GameLog.Info("抖音用户信息授权未完成");
-                authCallBack?.Invoke(false);
+                authStateCallBack?.Invoke(PlatformAuthStates.Denied);
             });
 #endif
         }
@@ -379,9 +386,9 @@ namespace Invariable
 
 #if !UNITY_EDITOR && MINIGAME_SUBPLATFORM_WEIXIN
         /// <summary>
-        /// 微信已授权则直接取资料，未授权则创建用户信息按钮
+        /// 微信已授权则直接取资料，未授权则先回调 NotAuthorized 再创建用户信息按钮，以便业务层先激活锚点
         /// </summary>
-        private void RequestWeChatUserInfo(Action<bool> authCallBack, Action<bool> userInfoCallBack, RectTransform authAnchor)
+        private void RequestWeChatUserInfo(Action<PlatformAuthStates> authStateCallBack, Action<bool> userInfoCallBack, RectTransform authAnchor)
         {
             int requestId = m_wxUserInfoRequestId;
             WX.GetSetting(new GetSettingOption
@@ -399,11 +406,13 @@ namespace Invariable
 
                     if (authorized)
                     {
+                        authStateCallBack?.Invoke(PlatformAuthStates.Authorized);
                         RequestWeChatUserInfoDirect(userInfoCallBack);
                     }
                     else
                     {
-                        CreateWeChatUserInfoButton(authCallBack, userInfoCallBack, authAnchor);
+                        authStateCallBack?.Invoke(PlatformAuthStates.NotAuthorized);
+                        CreateWeChatUserInfoButton(authStateCallBack, userInfoCallBack, authAnchor);
                     }
                 },
                 fail = err =>
@@ -414,7 +423,8 @@ namespace Invariable
                     }
 
                     GameLog.Error($"微信 GetSetting 失败: {err.errMsg}");
-                    CreateWeChatUserInfoButton(authCallBack, userInfoCallBack, authAnchor);
+                    authStateCallBack?.Invoke(PlatformAuthStates.NotAuthorized);
+                    CreateWeChatUserInfoButton(authStateCallBack, userInfoCallBack, authAnchor);
                 }
             });
         }
@@ -444,12 +454,11 @@ namespace Invariable
         }
 
         /// <summary>
-        /// 创建微信用户信息授权按钮，点击后取资料并销毁按钮
+        /// 创建微信用户信息授权按钮，点击后按结果上报状态，同意时销毁原生按钮，拒绝由业务层决定是否销毁
         /// </summary>
-        private void CreateWeChatUserInfoButton(Action<bool> authCallBack, Action<bool> userInfoCallBack, RectTransform authAnchor)
+        private void CreateWeChatUserInfoButton(Action<PlatformAuthStates> authStateCallBack, Action<bool> userInfoCallBack, RectTransform authAnchor)
         {
             int requestId = m_wxUserInfoRequestId;
-            authAnchor.gameObject.SetActive(true);
             DestroyWeChatUserInfoButton();
             GetScreenRectByNodePos(authAnchor, out Rect rect);
             int x = Mathf.RoundToInt(rect.x);
@@ -464,25 +473,24 @@ namespace Invariable
                     return;
                 }
 
-                DestroyWeChatUserInfoButton();
-                authAnchor.gameObject.SetActive(false);
-
+                bool hasUserInfo = res != null
+                    && (!string.IsNullOrEmpty(res.userInfo.nickName) || !string.IsNullOrEmpty(res.userInfo.avatarUrl));
                 bool ok = res != null
-                    && !string.IsNullOrEmpty(res.errMsg)
-                    && res.errMsg.IndexOf(":ok", StringComparison.Ordinal) >= 0;
+                    && (hasUserInfo || (!string.IsNullOrEmpty(res.errMsg) && res.errMsg.IndexOf(":ok", StringComparison.Ordinal) >= 0));
 
                 if (!ok)
                 {
                     m_platformUserInfoLoading = false;
                     GameLog.Info("微信用户信息授权未完成");
-                    authCallBack?.Invoke(false);
+                    authStateCallBack?.Invoke(PlatformAuthStates.Denied);
 
                     return;
                 }
 
-                authCallBack?.Invoke(true);
-                string nickName = res.userInfo.nickName;
-                string avatarUrl = res.userInfo.avatarUrl;
+                DestroyWeChatUserInfoButton();
+                authStateCallBack?.Invoke(PlatformAuthStates.Authorized);
+                string nickName = hasUserInfo ? res.userInfo.nickName : null;
+                string avatarUrl = hasUserInfo ? res.userInfo.avatarUrl : null;
                 ApplyPlatformUserInfo(nickName, avatarUrl, userInfoCallBack);
             });
         }
@@ -504,9 +512,9 @@ namespace Invariable
 
 #elif !UNITY_EDITOR && MINIGAME_SUBPLATFORM_DOUYIN
         /// <summary>
-        /// 抖音已授权则直接取资料，未授权则显示授权锚点等玩家点击
+        /// 抖音已授权则直接取资料，未授权则上报 NotAuthorized 由业务层显示授权入口
         /// </summary>
-        private void RequestDouYinUserInfo(Action<bool> userInfoCallBack, RectTransform authAnchor)
+        private void RequestDouYinUserInfo(Action<PlatformAuthStates> authStateCallBack, Action<bool> userInfoCallBack)
         {
             int requestId = m_douYinUserInfoRequestId;
             TT.GetSetting((setting) =>
@@ -518,12 +526,12 @@ namespace Invariable
 
                 if (setting != null && setting.UserInfo)
                 {
-                    RequestDouYinUserInfoDirect(userInfoCallBack, authAnchor, true);
+                    RequestDouYinUserInfoDirect(authStateCallBack, userInfoCallBack, PlatformAuthStates.NotAuthorized);
                 }
                 else
                 {
                     m_platformUserInfoLoading = false;
-                    authAnchor.gameObject.SetActive(true);
+                    authStateCallBack?.Invoke(PlatformAuthStates.NotAuthorized);
                     userInfoCallBack?.Invoke(false);
                 }
             }, (err) =>
@@ -535,15 +543,15 @@ namespace Invariable
 
                 m_platformUserInfoLoading = false;
                 GameLog.Info($"抖音 GetSetting 失败: {err}");
-                authAnchor.gameObject.SetActive(true);
+                authStateCallBack?.Invoke(PlatformAuthStates.NotAuthorized);
                 userInfoCallBack?.Invoke(false);
             });
         }
 
         /// <summary>
-        /// 抖音已授权后直接拉取最新昵称头像，showAnchorOnFail 控制失败时是否显示授权锚点
+        /// 抖音已授权后直接拉取最新昵称头像，userInfoFailState 在拉资料失败时上报，成功时上报 Authorized
         /// </summary>
-        private void RequestDouYinUserInfoDirect(Action<bool> userInfoCallBack, RectTransform authAnchor, bool showAnchorOnFail)
+        private void RequestDouYinUserInfoDirect(Action<PlatformAuthStates> authStateCallBack, Action<bool> userInfoCallBack, PlatformAuthStates userInfoFailState)
         {
             int requestId = m_douYinUserInfoRequestId;
             TT.GetUserInfo(false, delegate (ref TTUserInfo userInfo)
@@ -556,6 +564,7 @@ namespace Invariable
                 string nickName = userInfo != null ? userInfo.nickName : null;
                 string avatarUrl = userInfo != null ? userInfo.avatarUrl : null;
                 ApplyPlatformUserInfo(nickName, avatarUrl, userInfoCallBack);
+                authStateCallBack?.Invoke(PlatformAuthStates.Authorized);
             }, err =>
             {
                 if (requestId != m_douYinUserInfoRequestId)
@@ -565,12 +574,7 @@ namespace Invariable
 
                 m_platformUserInfoLoading = false;
                 GameLog.Error($"抖音 GetUserInfo 失败: {err}");
-
-                if (showAnchorOnFail)
-                {
-                    authAnchor.gameObject.SetActive(true);
-                }
-
+                authStateCallBack?.Invoke(userInfoFailState);
                 userInfoCallBack?.Invoke(false);
             });
         }
