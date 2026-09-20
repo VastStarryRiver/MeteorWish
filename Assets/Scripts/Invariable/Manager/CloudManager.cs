@@ -102,15 +102,13 @@ namespace Invariable
                 {
                     m_cloudDataCache = new Dictionary<string, string>();
                 }
+
+                callBack?.Invoke();
             }
             catch (Exception error)
             {
                 GameLog.Error($"初始化云数据失败: {error}");
                 m_cloudDataCache = null;
-            }
-            finally
-            {
-                callBack?.Invoke();
             }
         }
 

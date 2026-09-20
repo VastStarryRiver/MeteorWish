@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -16,9 +15,6 @@ namespace Invariable
         private static Camera[] m_uiCamera = null;
         private static RectTransform m_uiRoot = null;
         private static Dictionary<string, Sprite> m_remoteSpriteCache = null;
-        private static RectTransform[] m_panelParents = null;
-        private static Dictionary<string, Type> m_panelTypeCache = null;
-        private static HashSet<string> m_loadingPanels = null;
 
         public static Camera[] UICamera
         {
@@ -344,235 +340,11 @@ namespace Invariable
         }
 
         /// <summary>
-        /// 打开 UI Prefab 面板（加载中重复调用直接忽略）
-        /// </summary>
-        public static void OpenUIPrefabPanel(string prefabPath, int layer, Action<GameObject> callBack = null)
-        {
-            string prefabName = Path.GetFileName(prefabPath);
-
-            if (prefabName.Contains(".prefab"))
-            {
-                prefabName = prefabName.Replace(".prefab", "");
-            }
-
-            if (UIManager.Instance.AllPanel.TryGetValue(prefabName, out UIPanel existingPanel))
-            {
-                existingPanel.gameObject.SetActive(true);
-                callBack?.Invoke(existingPanel.gameObject);
-
-                return;
-            }
-
-            m_loadingPanels ??= new HashSet<string>();
-
-            if (m_loadingPanels.Contains(prefabName))
-            {
-                return;
-            }
-
-            m_loadingPanels.Add(prefabName);
-
-            string key = $"Prefabs_{prefabName}";
-            Transform parentTrans = GetPanelParent(layer);
-
-            YooAssetManager.Instance.AsyncLoadAsset<GameObject>(key, (asset) =>
-            {
-                m_loadingPanels.Remove(prefabName);
-
-                if (asset == null)
-                {
-                    GameLog.Error($"打开面板失败，资源加载为空：{key}");
-
-                    return;
-                }
-
-                if (UIManager.Instance.AllPanel.TryGetValue(prefabName, out UIPanel panel))
-                {
-                    panel.gameObject.SetActive(true);
-                    callBack?.Invoke(panel.gameObject);
-
-                    return;
-                }
-
-                GameObject gameObject = GameObject.Instantiate(asset, parentTrans);
-                gameObject.name = prefabName;
-                UIPanel uiPanel = (UIPanel)AddComponent(gameObject, "", prefabName);
-                UIManager.Instance.AddUIPanel(prefabName, uiPanel);
-                callBack?.Invoke(gameObject);
-            });
-        }
-
-        /// <summary>
-        /// 按组件名添加组件
-        /// </summary>
-        public static Component AddComponent(UnityEngine.Object obj, string childPath, string componentName)
-        {
-            GameObject gameObject = GetGameObject(obj);
-
-            if (gameObject == null)
-            {
-                return null;
-            }
-
-            if (!string.IsNullOrEmpty(childPath))
-            {
-                Transform trans = gameObject.transform.Find(childPath);
-
-                if (trans == null)
-                {
-                    return null;
-                }
-
-                gameObject = trans.gameObject;
-            }
-
-            Type type = ResolveComponentType(componentName);
-
-            if (type != null)
-            {
-                Component existing = gameObject.GetComponent(type);
-
-                if (existing != null)
-                {
-                    return existing;
-                }
-
-                return gameObject.AddComponent(type);
-            }
-
-            Component component = gameObject.GetComponent(componentName);
-
-            if (component == null)
-            {
-                component = gameObject.GetComponent($"Invariable.{componentName}");
-            }
-
-            if (component == null)
-            {
-                component = gameObject.GetComponent($"HotUpdate.{componentName}");
-            }
-
-            return component;
-        }
-
-        /// <summary>
-        /// 获取指定 Canvas 层的面板父节点（按层缓存）
-        /// </summary>
-        private static Transform GetPanelParent(int layer)
-        {
-            m_panelParents ??= new RectTransform[4];
-
-            if (layer < 0 || layer >= m_panelParents.Length)
-            {
-                layer = 0;
-            }
-
-            if (m_panelParents[layer] == null)
-            {
-                string path = InvariableConst.UIPanelPath_0;
-
-                if (layer == 1)
-                {
-                    path = InvariableConst.UIPanelPath_1;
-                }
-                else if (layer == 2)
-                {
-                    path = InvariableConst.UIPanelPath_2;
-                }
-                else if (layer == 3)
-                {
-                    path = InvariableConst.UIPanelPath_3;
-                }
-
-                GameObject parentObject = GameObject.Find(path);
-                m_panelParents[layer] = parentObject.GetComponent<RectTransform>();
-            }
-
-            return m_panelParents[layer];
-        }
-
-        /// <summary>
-        /// 解析组件 Type（带缓存，覆盖 Invariable/HotUpdate/内置 UI）
-        /// </summary>
-        private static Type ResolveComponentType(string componentName)
-        {
-            m_panelTypeCache ??= new Dictionary<string, Type>();
-
-            if (m_panelTypeCache.TryGetValue(componentName, out Type cachedType) && cachedType != null)
-            {
-                return cachedType;
-            }
-
-            Type type = Type.GetType(componentName);
-
-            if (type == null)
-            {
-                type = Type.GetType($"Invariable.{componentName}");
-            }
-
-            if (type == null)
-            {
-                type = Type.GetType($"HotUpdate.{componentName}");
-            }
-
-            if (type == null)
-            {
-                type = FindTypeTool.GetComponentType(componentName);
-            }
-
-            if (type == null)
-            {
-                System.Reflection.Assembly hotUpdateAssembly = YooAssetManager.Instance.HotUpdateAssembly;
-
-                if (hotUpdateAssembly != null)
-                {
-                    type = hotUpdateAssembly.GetType($"HotUpdate.{componentName}") ?? hotUpdateAssembly.GetType(componentName);
-                }
-            }
-
-            if (type != null)
-            {
-                m_panelTypeCache[componentName] = type;
-            }
-
-            return type;
-        }
-
-        /// <summary>
-        /// 按组件名获取组件
-        /// </summary>
-        public static Component GetComponent(UnityEngine.Object obj, string childPath, string componentName)
-        {
-            GameObject gameObject = GetGameObject(obj);
-            Transform trans = null;
-
-            if (gameObject != null)
-            {
-                trans = gameObject.transform;
-            }
-            else
-            {
-                return null;
-            }
-
-            if (!string.IsNullOrEmpty(childPath))
-            {
-                trans = trans.Find(childPath);
-            }
-
-            if (trans != null)
-            {
-                return trans.GetComponent(componentName);
-            }
-
-            return null;
-        }
-
-        /// <summary>
         /// 创建并常驻 Manager 实例
         /// </summary>
-        public static void CreateManagerInstance(string managerName, string[] components = null)
+        public static void CreateManagerInstance<T>(params Type[] extraComponents) where T : MonoBehaviour
         {
+            string managerName = typeof(T).Name;
             GameObject obj = GameObject.Find(managerName);
 
             if (obj != null)
@@ -582,15 +354,20 @@ namespace Invariable
 
             obj = new GameObject(managerName);
 
-            if (components != null && components.Length > 0)
+            if (extraComponents != null && extraComponents.Length > 0)
             {
-                for (int i = 0; i < components.Length; i++)
+                for (int i = 0; i < extraComponents.Length; i++)
                 {
-                    AddComponent(obj, "", components[i]);
+                    Type extraType = extraComponents[i];
+
+                    if (extraType != null)
+                    {
+                        obj.AddComponent(extraType);
+                    }
                 }
             }
 
-            AddComponent(obj, "", managerName);
+            obj.AddComponent<T>();
 
             UnityEngine.Object.DontDestroyOnLoad(obj);
         }

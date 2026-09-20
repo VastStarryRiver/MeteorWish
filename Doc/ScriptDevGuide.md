@@ -227,12 +227,12 @@ private void Awake()
 3. 框架级全局根节点需要跨场景定位，例如 `UI_Root`；
 4. 第三方 SDK 或框架 API 只能通过名称、路径或类型获取对象；
 5. 为兼容已有资源临时补偿缺失引用，并且需求明确要求兼容；
-6. 例外：`UIPopup.OnEnable` 对同物体 `CanvasGroup` 使用 `GetComponent`（`m_tsTrans` 所在物体必须同时挂 `CanvasGroup`）。
+6. 例外：`UIPopup.OnEnable` 对同物体 `CanvasGroup` 使用 `GetComponent`（`m_tsTrans` 所在物体必须同时挂 `CanvasGroup`）；`UIPanel.Close` 对同物体 `UIPopup` 使用 `GetComponent`。一次性生命周期路径与动态、外部传入对象无需缓存。
 
 确需运行时查找时，必须同时满足：
 
 - 在代码旁写注释说明不能拖拽绑定的原因；
-- 尽量只查找一次，并将结果缓存到成员字段；
+- 尽量只查找一次，并将结果缓存到成员字段；一次性生命周期路径（面板显示或关闭时只调一次）与动态、外部传入对象无需缓存；
 - 使用前检查查找结果是否为 `null`；
 - 查找失败时输出包含节点名称或路径的明确错误日志；
 - 不使用容易变化的深层路径；
@@ -525,7 +525,7 @@ Assets/GameAssets/Prefabs/UI/InventoryPanel/InventoryPanel.prefab
 ### 5.3 打开页面
 
 ```csharp
-Utils.OpenUIPrefabPanel(
+HotUpdateUtils.OpenUIPrefabPanel(
     "InventoryPanel",
     0,
     panelObject =>
@@ -553,7 +553,7 @@ UIManager.Instance.CloseUIPanel("InventoryPanel");
 ### 5.5 UI 页面检查清单
 
 - [ ] 脚本名、类名、Prefab 名一致；
-- [ ] 使用 `Utils.OpenUIPrefabPanel` 打开页面；Tips/FloatText 可用 `HotUpdateUtils` 业务封装；
+- [ ] 使用 `HotUpdateUtils.OpenUIPrefabPanel` 打开页面；Tips/FloatText 可用 `OpenTipsPanel` / `ShowFloatText`；
 - [ ] layer 对应节点存在；
 - [ ] Inspector 引用完整，所有固定组件均通过 `public` 字段拖拽赋值；
 - [ ] 没有使用 `Find` 查找本可直接绑定的 UI 组件；
@@ -982,7 +982,7 @@ string score = SdkManager.Instance.GetCloudData("Score", "0");
 | Editor | 转发 `SetLocalData` / `GetLocalData` |
 | 微信/抖音 | 转发 `CloudManager` 云缓存；写后异步上传 |
 
-云初始化失败后 Set 静默丢弃、Get 返回默认值。排行榜上报：`CloudManager.Instance.ReportRankScore(rankKey, score)`。排行榜拉取：`CloudManager.Instance.GetRankList(rankKey, rankType, callBack)`，`rankType` 必填，世界榜传 `CloudRankTypes.World`，日榜传 `CloudRankTypes.Day`。编辑器桩：`GetRankList` 回空列表、`ReportRankScore` 回 true。资料键用 `CloudDataKeys.UserId` / `NickName` / `AvatarUrl`。昵称直接赋 `TextMeshProUGUI.text`；头像 URL 用 `Utils.SetRemoteImage`，不要用挂载图集。云存档与排行榜契约见 FrameworkAndProcess §16。云函数/密钥约束见 NewProjectSetup §7。
+云初始化失败后 Set 静默丢弃、Get 返回默认值。排行榜上报：`CloudManager.Instance.ReportRankScore(rankKey, score)`。排行榜拉取：`CloudManager.Instance.GetRankList(rankKey, rankType, callBack)`，`rankType` 必填，世界榜传 `CloudRankTypes.World`，日榜传 `CloudRankTypes.Day`。编辑器桩：`InitCloudData` 直接回调、`GetRankList` 回空列表、`ReportRankScore` 回 true。资料键用 `CloudDataKeys.UserId` / `NickName` / `AvatarUrl`。昵称直接赋 `TextMeshProUGUI.text`；头像 URL 用 `Utils.SetRemoteImage`，不要用挂载图集。云存档与排行榜契约见 FrameworkAndProcess §16。云函数/密钥约束见 NewProjectSetup §7。
 
 存档修改应考虑：
 
@@ -996,7 +996,7 @@ string score = SdkManager.Instance.GetCloudData("Score", "0");
 
 推荐做法：
 
-1. 先确认 `SdkManager` 是否已有现成能力（如分享 `Share(string desc)`、环境判断 `IsWeChat()/IsDouYin()`、云读写 `SetCloudData/GetCloudData`、用户信息 `SyncPlatformUserInfo(authAnchor, authStateCallBack, userInfoCallBack)` / `TryGetPlatformUserInfo` / `RequestPlatformUserInfoAuth(authAnchor, authStateCallBack, userInfoCallBack)` / `DestroyPlatformUserInfoButton`，`authStateCallBack` 上报 `PlatformAuthStates`（`Invariable` 顶层枚举）、`userInfoCallBack` 仅资料结果，授权按钮显隐由业务层负责，`MainPanel` 仅 `NotAuthorized` 显示），避免重复实现；云存档/云函数与世界榜/日榜见 `CloudManager`、FrameworkAndProcess §16 与 NewProjectSetup §7；
+1. 先确认 `SdkManager` 是否已有现成能力（如分享 `Share(string desc)`、环境判断 `IsWeChat()/IsDouYin()`、云读写 `SetCloudData/GetCloudData`、用户信息 `SyncPlatformUserInfo(authAnchor, authStateCallBack, userInfoCallBack)` / `TryGetPlatformUserInfo` / `DestroyPlatformUserInfoButton`，微信未授权由 `SyncPlatformUserInfo` 创建原生按钮，抖音锚点点击走 `RequestPlatformUserInfoAuth(authAnchor, authStateCallBack, userInfoCallBack)`，`authStateCallBack` 上报 `PlatformAuthStates`（`Invariable` 顶层枚举）、`userInfoCallBack` 仅资料结果，授权按钮显隐由业务层负责，`MainPanel` 仅 `NotAuthorized` 显示），避免重复实现；云存档/云函数与世界榜/日榜见 `CloudManager`、FrameworkAndProcess §16 与 NewProjectSetup §7；
 2. 在 `SdkManager` 添加平台无关的公共方法；
 3. 方法内部使用平台宏分支；
 4. Editor 分支提供可预测的模拟结果；
@@ -1039,8 +1039,7 @@ public void DoPlatformAction(Action<bool> callBack)
 
 ## 15. Prefab 和脚本绑定注意事项
 
-- 热更新 UI 可以通过 Prefab 序列化脚本或运行时按类名补加组件；
-- 运行时补加依赖“Prefab 名 = 类名”；
+- 热更新 UI Prefab 必须预先挂载 `UIPanel`，打开时取已挂载组件，缺失则报错返回；
 - 字段序列化变化可能导致已有 Prefab 丢引用；
 - 重命名脚本或移动命名空间时要检查 Prefab；
 - 修改字段类型后要重新打开 Prefab 验证；

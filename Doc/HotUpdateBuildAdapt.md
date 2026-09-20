@@ -35,10 +35,12 @@ Assets/Settings/Build Profiles/
 └─ DouYin Profile.asset
 ```
 
-切平台两步缺一不可：
+切子平台与启用 Profile 缺一不可：
 
 1. 切换 minigame 子平台（`PlayerSettings.MiniGame.SetActiveSubplatform`），写入编译宏
-2. 启用对应 Build Profile（`EditorBuildSettings.buildProfiles` 目标 enabled，其余关闭）
+2. 等域重载完成
+3. 启用对应 Build Profile（`EditorBuildSettings.buildProfiles` 目标 enabled，其余关闭）
+4. 验证编译宏与 Profile enabled 一致
 
 代码方式固定顺序：先切子平台 → 等域重载完成 → 再启用对应 Profile。顺序不可颠倒，域重载会清空 Profile enabled。手动操作一律在团结引擎 Build Profile 窗口勾选目标 Profile，引擎会同时完成子平台切换与 Profile 启用。不要只改宏文本。
 
@@ -239,7 +241,7 @@ Assets/GameAssets/DLL/{platform}/{AOT程序集}.dll.bin
 EditorUserBuildSettings.activeBuildTarget.ToString()
 ```
 
-运行时代码却固定调用：
+运行时代码却固定调用内部：
 
 ```csharp
 LoadMetadataForAOTAssemblies("MiniGame", ...)

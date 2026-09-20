@@ -256,7 +256,7 @@ Assets/Settings/Build Profiles/DouYin Profile.asset
 
 **重要：** Profile 含机器相关绝对路径。整目录复制后必须重新检查，不能沿用源机器路径。
 
-切平台两步缺一不可：先切 minigame 子平台，域重载完成后再启用对应 Build Profile；顺序不可颠倒。手动操作一律在团结引擎 Build Profile 窗口勾选目标 Profile。不要只改宏文本。
+切子平台与启用 Profile 缺一不可：先切 minigame 子平台，域重载完成后再启用对应 Build Profile；顺序不可颠倒。手动操作一律在团结引擎 Build Profile 窗口勾选目标 Profile。不要只改宏文本。
 
 平台配置必须成对修改：
 
@@ -271,7 +271,7 @@ Assets/Settings/Build Profiles/DouYin Profile.asset
 
 ### 5.10 明确无需改动的项
 
-- `YooAssetManager.Instance.LoadMetadataForAOTAssemblies("MiniGame", ...)` 中的 `"MiniGame"` 是团结引擎 **BuildTarget 名**（与 `EditorUserBuildSettings.activeBuildTarget.ToString()` 对应），**不是**产品名 / GameId。同引擎版本下保持不变。
+- `YooAssetManager.Instance.PreLoadDll` 内部平台目录名固定为 `MiniGame`（团结引擎 **BuildTarget 名**，与 `EditorUserBuildSettings.activeBuildTarget.ToString()` 对应），**不是**产品名 / GameId。同引擎版本下保持不变。
 - YooAsset Package 名默认 `MyPackage`，可沿用，除非团队另有规范。
 - `HotUpdate.asmdef` 引用 `Invariable` 与 `CloudService`（消费 Model DTO），统一写名称，**勿删**。项目内程序集之间用名称引用，第三方包用 GUID。
 
@@ -431,7 +431,7 @@ Assets/Settings/Build Profiles/DouYin Profile.asset
 - `UOS/Open Launcher`（关联 UOS App / 凭证）
 - `UOS/CDN/Manager`（切换 CDN 上传目标 Bucket）
 
-切平台与平台配置修改见 HotUpdateBuildAdapt §12（先切子平台再启用 Profile、配置成对修改），不要只改宏文本。
+切平台见 HotUpdateBuildAdapt §1（先切子平台、等域重载、再启用 Profile）；成对修改见本章 §5.8 与 HotUpdateBuildAdapt §9 / §10。不要只改宏文本。
 
 ## 附录 C：准备进度勾选（可选）
 

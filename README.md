@@ -26,12 +26,12 @@
 
 | 维度 | 质量 | 亮点 | 关键实现 |
 |---|---|---|---|
-| 架构与热更 | 优 | 单向依赖零反向引用，AOT↔热更仅 3 处反射触点；热更 DLL / 配置 bytes / UI Prefab 全走 YooAsset，可纯热更发布；HybridCLR AOT 元数据并行加载 | `HotUpdateOver` / `Utils` / `YooAssetManager` |
+| 架构与热更 | 优 | 单向依赖零反向引用，AOT↔热更仅 2 处反射触点；热更 DLL / 配置 bytes / UI Prefab 全走 YooAsset，可纯热更发布；HybridCLR AOT 元数据并行加载 | `HotUpdateOver` / `YooAssetManager` |
 | 平台适配 | 优 | 微信 / 抖音 / 编辑器三分支 `#if` 隔离；登录、键盘、安全区、广告、分享、侧边栏等能力统一入口封装 | `SdkManager`、`MINIGAME_SUBPLATFORM_*` |
 | 启动流程 | 优 | 状态机串行驱动启动链，各节点职责单一，失败可定位到具体节点 | `Launcher`、`StateMachine`、`InitializeYooAsset` → `HotUpdateOver` |
 | 事件与计时 | 优 | 泛型事件总线触发快照（快照列表经 `PoolUtils` 池化复用）并逐 listener 隔离；秒/帧双最小堆计时器由 `Update` 驱动；事件 / 计时器 key 全常量化 | `GameManager`、`InvariableConst` / `HotUpdateConst` |
 | 配置表系统 | 优 | CFGT magic + schemaHash 三处同源；导表严格失败保证一致性；三层缓存与大表分帧物化；独立回读交叉验证 | `ConfigReader` / `ConfigManagerCore` / `ConfigValidator`、schemaHash |
-| UI 系统 | 优 | 打开页面单一入口且加载中去重；UIPanel / UIPopup 职责切分；FloatText 内部 item 对象池复用、播完自动隐藏与对称清理 | `Utils.OpenUIPrefabPanel`、`UIPanel` / `UIPopup`、`FloatTextPanel` |
+| UI 系统 | 优 | 打开页面单一入口且加载中去重；UIPanel / UIPopup 职责切分；FloatText 内部 item 对象池复用、播完自动隐藏与对称清理 | `HotUpdateUtils.OpenUIPrefabPanel`、`UIPanel` / `UIPopup`、`FloatTextPanel` |
 | 音频系统 | 优 | BGM 单通道循环，SFX 每 clip 一源打断重播；仅挂载播放；音量经平台层本地持久化 | `AudioManager`、`SdkManager` |
 | 资源与性能 | 优 | 同地址在途去重；闲置句柄 180s / 30s 扫描逐出并白名单兜底；配置分帧物化、字符串缓存、`PoolUtils` 对象池降峰值 | `YooAssetManager`、`ConfigManagerCore`、`TryUnloadUnusedAsset` |
 | 云服务 | 优 | 密钥走环境变量分层；写后 2s 防抖 + 串行上传 + dirty 重标记；世界榜/日榜快照增量维护 Top100，查看只读 3 次请求；命名空间服务端自拼 | `CloudHelper` / `CloudManager` / `SdkManager`、`ReportRankScore` / `GetRankList` |
@@ -61,7 +61,7 @@ Assets/Scenes/Start.scene
   -> CloudManager.InitCloudData
   -> YooAssetManager.PreLoadDll
   -> 反射 HotUpdate.StartGame.Play
-  -> Utils.OpenUIPrefabPanel("MainPanel", 0)
+  -> HotUpdateUtils.OpenUIPrefabPanel("MainPanel", 0)
 ```
 
 ## 4. 最重要的目录边界
@@ -187,6 +187,6 @@ BUG 出现前的操作、实际结果、预期结果、日志或截图
   - `MINIGAME_SUBPLATFORM_WEIXIN`
   - `MINIGAME_SUBPLATFORM_DOUYIN`
 - 安全区为固定偏移，不是根据设备实时安全区计算。
-- UOS：Launcher / CloudSave / Func Stateless；玩家存档 namespace 为 `kv_{CloudManager.CloudSaveGameId}_player`，排行榜快照为 `kv_{CloudManager.CloudSaveGameId}_rank_{平台}`（`wx` / `dy` 分榜），须与 `CloudHelper.Secrets.GameId` 一致。后台显示名（仅展示）：玩家存档「微信玩家数据」/「抖音玩家数据」，快照「微信世界排行榜」/「微信每日排行榜」/「抖音世界排行榜」/「抖音每日排行榜」。玩家存档 JSON 含 `CloudDataKeys.UserId` / `NickName` / `AvatarUrl`；排行榜条目为 `UserId` / `NickName` / `AvatarUrl` / `Data` 并列（`Data` 只保留排行分数等业务数据）；授权入口 `SdkManager.RequestPlatformUserInfoAuth`，状态经 `PlatformAuthStates`（`Invariable` 顶层枚举）回业务层，授权按钮显隐由业务层负责（`MainPanel` 仅未授权显示，已授权本局上报一次排行榜）；微信首次需 `createUserInfoButton`，抖音需 `scope.userInfo` 授权；未授权不阻塞存档。
+- UOS：Launcher / CloudSave / Func Stateless；玩家存档 namespace 为 `kv_{CloudManager.CloudSaveGameId}_player`，排行榜快照为 `kv_{CloudManager.CloudSaveGameId}_rank_{平台}`（`wx` / `dy` 分榜），须与 `CloudHelper.Secrets.GameId` 一致。后台显示名（仅展示）：玩家存档「微信玩家数据」/「抖音玩家数据」，快照「微信世界排行榜」/「微信每日排行榜」/「抖音世界排行榜」/「抖音每日排行榜」。玩家存档 JSON 含 `CloudDataKeys.UserId` / `NickName` / `AvatarUrl`；排行榜条目为 `UserId` / `NickName` / `AvatarUrl` / `Data` 并列（`Data` 只保留排行分数等业务数据）；授权：微信 `SyncPlatformUserInfo` 创建原生按钮，抖音 `RequestPlatformUserInfoAuth`，状态经 `PlatformAuthStates`（`Invariable` 顶层枚举）回业务层，授权按钮显隐由业务层负责（`MainPanel` 仅未授权显示，已授权本局上报一次排行榜）；微信首次需 `createUserInfoButton`，抖音需 `scope.userInfo` 授权；未授权不阻塞存档。
 - `HotUpdate` 引用 `Invariable` 与 `CloudService`（消费 Model DTO，如 `PlayerCloudData`）；项目内程序集统一名称引用，第三方包用 GUID。
 - 云读写业务入口：`SdkManager.SetCloudData` / `GetCloudData`；云初始化：`CloudManager.InitCloudData`。

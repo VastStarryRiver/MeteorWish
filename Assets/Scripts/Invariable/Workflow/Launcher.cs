@@ -25,8 +25,8 @@ namespace Invariable
 
             InitPoolParent();
 
-            Utils.CreateManagerInstance("GameManager");
-            Utils.CreateManagerInstance("AudioManager", new string[] { "AudioListener" });
+            Utils.CreateManagerInstance<GameManager>();
+            Utils.CreateManagerInstance<AudioManager>(typeof(AudioListener));
         }
 
         private void OnEnable()
