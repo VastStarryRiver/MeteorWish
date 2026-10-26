@@ -23,10 +23,10 @@ namespace Invariable
             "Newtonsoft.Json",
         };
         public const string YooAssetPackageName = "MyPackage";
-        public const string CDNPathDouYin = "";
-        public const string CDNPathWeChat = "";
-        public const string EncryptKey = "";
-        public const string EncryptIv = "";
+        public const string CDNPathDouYin = "https://a.unity.cn/client_api/v1/buckets/b24fd050-49f0-4fa8-9c6a-6d4cf4fc99c6/release_by_badge/latest/content";
+        public const string CDNPathWeChat = "https://a.unity.cn/client_api/v1/buckets/ec8d502c-f400-4941-b4f1-aac2d1fccf23/release_by_badge/latest/content";
+        public const string EncryptKey = "95gbt368426hyb13";
+        public const string EncryptIv = "i8g3451h5cxmj6rf";
         public const string UIRootPath = "UI_Root";
         public const string UICameraPath_0 = "UI_Root/Canvas_0/UI_Camera";
         public const string UICameraPath_1 = "UI_Root/Canvas_1/UI_Camera";

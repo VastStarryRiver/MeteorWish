@@ -91,7 +91,7 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.test-framework": "1.1.31"
       },
-      "hash": "30d22075093d1d35dfb0091c1c7550e9ad948577"
+      "hash": "aa5fc638d623f56178d50329d9ad8c541a57fe66"
     },
     "com.esotericsoftware.spine.spine-csharp": {
       "version": "https://github.com/EsotericSoftware/spine-runtimes.git?path=spine-csharp/src#4.2",
@@ -121,11 +121,11 @@
       "hash": "d57272a041eef9793e8b778e6a75477c5a9e63da"
     },
     "com.qq.weixin.minigame": {
-      "version": "https://gitee.com/wechat-minigame/minigame-tuanjie-transform-sdk.git#d288776c50578926c732496882bd6ab6684c778c",
+      "version": "https://gitee.com/wechat-minigame/minigame-tuanjie-transform-sdk.git",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "d288776c50578926c732496882bd6ab6684c778c"
+      "hash": "a09d4b29daa1dd8358b09b5b5639554ab08cfdc2"
     },
     "com.tuyoogame.yooasset": {
       "version": "2.3.19",

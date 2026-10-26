@@ -13,7 +13,7 @@
     "com.esotericsoftware.spine.spine-csharp": "https://github.com/EsotericSoftware/spine-runtimes.git?path=spine-csharp/src#4.2",
     "com.esotericsoftware.spine.spine-unity": "https://github.com/EsotericSoftware/spine-runtimes.git?path=spine-unity/Assets/Spine#4.2",
     "com.github-glitchenzo.nugetforunity": "https://e.coding.net/unitychina/uos/NuGetForUnity.git?path=/src/NuGetForUnity",
-    "com.qq.weixin.minigame": "https://gitee.com/wechat-minigame/minigame-tuanjie-transform-sdk.git#d288776c50578926c732496882bd6ab6684c778c",
+    "com.qq.weixin.minigame": "https://gitee.com/wechat-minigame/minigame-tuanjie-transform-sdk.git",
     "com.tuyoogame.yooasset": "2.3.19",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.feature.development": "1.0.1",
