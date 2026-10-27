@@ -74,7 +74,7 @@
         "com.unity.ugui": "1.0.0",
         "com.unity.modules.particlesystem": "1.0.0"
       },
-      "hash": "c54f63cb18a22382215b142b63e232f0f86fff58"
+      "hash": "eec288e2a5cfd43743b70e9a8c397d5e5300e80a"
     },
     "com.coplaydev.unity-mcp": {
       "version": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
@@ -91,14 +91,14 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.test-framework": "1.1.31"
       },
-      "hash": "aa5fc638d623f56178d50329d9ad8c541a57fe66"
+      "hash": "81542a7e86292b5c4c21b1782c5af23b567f45ce"
     },
     "com.esotericsoftware.spine.spine-csharp": {
       "version": "https://github.com/EsotericSoftware/spine-runtimes.git?path=spine-csharp/src#4.2",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "a554d4f1b0cb80f481682c05cb575b0255bc8e1c"
+      "hash": "e7dc1435fa4a0083ab431f1b28e083c14a1f5c68"
     },
     "com.esotericsoftware.spine.spine-unity": {
       "version": "https://github.com/EsotericSoftware/spine-runtimes.git?path=spine-unity/Assets/Spine#4.2",
@@ -111,7 +111,7 @@
         "com.unity.modules.physics2d": "1.0.0",
         "com.esotericsoftware.spine.spine-csharp": "4.2.0"
       },
-      "hash": "a554d4f1b0cb80f481682c05cb575b0255bc8e1c"
+      "hash": "e7dc1435fa4a0083ab431f1b28e083c14a1f5c68"
     },
     "com.github-glitchenzo.nugetforunity": {
       "version": "https://e.coding.net/unitychina/uos/NuGetForUnity.git?path=/src/NuGetForUnity",
@@ -125,7 +125,7 @@
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "a09d4b29daa1dd8358b09b5b5639554ab08cfdc2"
+      "hash": "915d4bf4f60ef0cd1c29316a8d67257185d609a7"
     },
     "com.tuyoogame.yooasset": {
       "version": "2.3.19",

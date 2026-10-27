@@ -65,10 +65,10 @@ namespace CloudService
         private static readonly GameSecrets Secrets = new GameSecrets
         {
             GameId = "MeteorWish",
-            WechatAppId = "wx96a8cdfda6f1113f",
-            WechatAppSecret = "1745c03e2e776cef8a28d5ff2329669d",
-            DouyinAppId = "tta5acd3113aa3d89107",
-            DouyinAppSecret = "1c249e48986b5c8dfe71142a0e5360dd328b6bd3"
+            WechatAppId = "",
+            WechatAppSecret = "",
+            DouyinAppId = "",
+            DouyinAppSecret = ""
         };
 
 
